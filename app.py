@@ -49,8 +49,62 @@ sentiment_mode = st.sidebar.selectbox("Sentiment scale", ["-1..+1", "0..1"], ind
 edge_scale = st.sidebar.slider("Edge thickness scale", 0.1, 5.0, 1.0, 0.1)
 show_labels = st.sidebar.checkbox("Show edge labels (freq)", value=True)
 
-edges_df = example_edges[example_edges["freq"] >= min_freq].copy()
+edges_df = st.session_state.edges_df[
+    st.session_state.edges_df["freq"] >= min_freq
+].copy()
+st.sidebar.divider()
+st.sidebar.subheader("➕ Add stakeholder")
 
+with st.sidebar.form("add_person_form"):
+    person_id = st.text_input("Unique ID (e.g. name)")
+    label = st.text_input("Display name")
+    group = st.text_input("Group / Team", value="General")
+    influence = st.slider("Influence", 0.0, 1.0, 0.5)
+
+    submitted = st.form_submit_button("Add person")
+
+    if submitted:
+        if person_id and person_id not in st.session_state.nodes_df["id"].values:
+            new_row = {
+                "id": person_id,
+                "label": label or person_id,
+                "group": group,
+                "influence": influence,
+            }
+            st.session_state.nodes_df = pd.concat(
+                [st.session_state.nodes_df, pd.DataFrame([new_row])],
+                ignore_index=True,
+            )
+        else:
+            st.sidebar.warning("ID missing or already exists")
+st.sidebar.divider()
+st.sidebar.subheader("🔗 Add relationship")
+
+people = st.session_state.nodes_df["id"].tolist()
+
+if len(people) >= 2:
+    with st.sidebar.form("add_edge_form"):
+        src = st.selectbox("From", people)
+        tgt = st.selectbox("To", people)
+
+        freq = st.slider("Contact frequency", 1, 50, 5)
+        sentiment = st.slider("Sentiment (-1 = bad, +1 = good)", -1.0, 1.0, 0.0)
+
+        submitted_edge = st.form_submit_button("Add relationship")
+
+        if submitted_edge and src != tgt:
+            new_edge = {
+                "source": src,
+                "target": tgt,
+                "freq": freq,
+                "sentiment": sentiment,
+            }
+            st.session_state.edges_df = pd.concat(
+                [st.session_state.edges_df, pd.DataFrame([new_edge])],
+                ignore_index=True,
+            )
+else:
+    st.sidebar.caption("Add at least two people first")
 # ----------------------------
 # 3) Helper functions
 # ----------------------------
@@ -97,7 +151,7 @@ def freq_to_width(freq, fmin, fmax):
 # ----------------------------
 # Create nodes
 nodes = []
-for _, r in example_nodes.iterrows():
+for _, r in st.session_state.nodes_df.iterrows():
     # Node size can represent influence or any other dimension
     size = 10 + 30 * float(r.get("influence", 0.5))
     nodes.append(
