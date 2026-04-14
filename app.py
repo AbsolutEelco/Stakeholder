@@ -32,7 +32,14 @@ example_nodes = pd.DataFrame(
         {"id": "Marco", "label": "Marco", "group": "ERP", "influence": 0.6},
     ]
 )
+# -----------------------------------
+# Session state initialization
+# -----------------------------------
+if "nodes_df" not in st.session_state:
+    st.session_state.nodes_df = example_nodes.copy()
 
+if "edges_df" not in st.session_state:
+    st.session_state.edges_df = example_edges.copy()
 # ----------------------------
 # 2) Sidebar controls
 # ----------------------------
